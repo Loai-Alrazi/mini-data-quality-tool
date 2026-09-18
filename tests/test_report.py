@@ -1,3 +1,4 @@
+import pytest
 
 from src.report import generate_report
 
@@ -67,3 +68,71 @@ def test_generate_report_preserves_report_structure():
     )
 
     assert report == expected
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("rows_before", "50"),
+        ("rows_after", 45.5),
+        ("duplicates_removed", None),
+        ("missing_values_handled", True),
+    ],
+)
+def test_generate_report_rejects_non_integer_statistics(field, value):
+    statistics = {
+        "rows_before": 50,
+        "rows_after": 45,
+        "duplicates_removed": 5,
+        "missing_values_handled": 3,
+    }
+    statistics[field] = value
+
+    with pytest.raises(TypeError, match=f"{field} must be an integer"):
+        generate_report(**statistics)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("rows_before", -1),
+        ("rows_after", -1),
+        ("duplicates_removed", -1),
+        ("missing_values_handled", -1),
+    ],
+)
+def test_generate_report_rejects_negative_statistics(field, value):
+    statistics = {
+        "rows_before": 50,
+        "rows_after": 45,
+        "duplicates_removed": 5,
+        "missing_values_handled": 3,
+    }
+    statistics[field] = value
+
+    with pytest.raises(ValueError, match=f"{field} cannot be negative"):
+        generate_report(**statistics)
+
+
+def test_generate_report_rejects_rows_after_greater_than_rows_before():
+    with pytest.raises(
+        ValueError,
+        match="rows_after cannot be greater than rows_before",
+    ):
+        generate_report(
+            rows_before=50,
+            rows_after=51,
+            duplicates_removed=0,
+        )
+
+
+def test_generate_report_rejects_duplicates_greater_than_rows_before():
+    with pytest.raises(
+        ValueError,
+        match="duplicates_removed cannot be greater than rows_before",
+    ):
+        generate_report(
+            rows_before=50,
+            rows_after=45,
+            duplicates_removed=51,
+        )
